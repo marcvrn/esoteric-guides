@@ -172,6 +172,75 @@ Trace variables and lookup tables before assigning business meaning.
 List internal listeners separately. Do not count them as additional
 business events. Preserve platform-specific events outside GTM.
 
+4A. INSPECT META PIXEL EVENTS AND PUBLIC ADS
+
+Search HTML, GTM custom HTML and templates, shipped application code,
+and observed browser requests for fbq, _fbq, fbevents.js,
+connect.facebook.net, and facebook.com/tr. Handle spacing, alternate
+quotes, wrappers, and dynamically assembled calls. A source search
+alone cannot establish complete coverage.
+
+Inspect init, track, trackCustom, trackSingle, and trackSingleCustom.
+Distinguish standard events, custom events, and account-side custom
+conversions. A custom event is not proof that a custom conversion
+exists or that an ad set optimizes for it.
+
+Inventory every pixel ID and map each event to its destination.
+Check whether calls target one pixel or multiple initialized pixels.
+For each event, include the fields required above plus:
+- Call method and whether observed in configuration or at runtime.
+- Exact URL and user action preceding the event.
+- Consent state, initial load, SPA navigation, and reload behavior.
+- Content name, category, content_ids, contents, content_type,
+  num_items, value, currency, and business-specific parameters.
+- Whether value is a literal, fallback, item price, order total,
+  assigned lead score, or unresolved expression.
+- eventID presence and generation logic where visible. Do not
+  publish visitor identifiers or personal matching data.
+- Possible duplicate emissions and the evidence supporting them.
+
+Use browser network inspection or a verified publisher's pixel
+debugger when available. Record tool name and version. Do not claim
+to have run an extension when only static inspection was possible.
+Use diagnostic features only, without installing or changing tags.
+
+For Lead, Purchase, CompleteRegistration, Schedule, Subscribe,
+and comparable custom events, determine what actually triggers them.
+Distinguish arriving at an empty form, clicking submit, a successful
+response, and loading a confirmation page. A page-load trigger on a
+confirmation page can be appropriate. Check repeat-counting risk.
+Do not submit competitor forms or complete transactions to test it.
+
+Browser inspection cannot establish the complete Conversions API,
+CRM, offline, or in-app event flow. An eventID does not prove that
+a matching server event exists or that deduplication succeeds.
+No visible event does not prove no measurement.
+
+Where accessible, inspect the advertiser's Meta Ad Library entry.
+Record the advertiser identity, Library URL, ad ID, observation date,
+country and status filters, displayed start date, creative, copy,
+CTA, offer, visible destination, and resolved landing page.
+Record blocked access or incomplete coverage explicitly.
+
+For each relevant ad, map the visible offer to landing-page content
+and observed events. State whether the relationship is direct
+evidence or an inference. Landing on a form with a Lead event does
+not establish the ad's objective or selected optimization event.
+The same restriction applies to product pages with Purchase tags.
+Consider instant forms, messaging, apps, and server-side outcomes.
+Do not infer profitability, spend, results, or a winning creative
+from active status, ad count, or longevity alone.
+
+Return a Meta event-by-event table and an ad-to-landing-page table,
+not only totals. Extract product and offer clues from actual payloads
+and creatives. Corroborate names and SKUs against public pages.
+Do not equate an unfamiliar catalog identifier with a new product.
+
+Separate measurement quality from optimization impact. A premature
+Lead event can inflate reported leads and lower apparent CPL. It
+may harm delivery if the campaign uses that signal, but neither
+campaign selection nor the size of the effect is public evidence.
+
 5. INVESTIGATE PRODUCTS AND POSSIBLE ROADMAP CLUES
 
 Search business-specific source and configuration for:

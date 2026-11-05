@@ -84,6 +84,97 @@ Trigger details can change the meaning:
 
 These are investigation leads. They are not confirmed bugs until the relevant runtime behavior is tested.
 
+## What Meta pixel inspection reveals
+
+Meta inspection can reveal event names, business parameters, product identifiers, and the actions a website records. It does not expose a competitor's full advertising configuration.
+
+Separate the event sent by the website from the goal selected by an ad set. Meta's official SDK represents `optimization_goal`, `promoted_object`, `bid_strategy`, and attribution settings as ad-set fields. Reading a website's pixel calls does not reveal those field values. [Meta's ad-set SDK definition](https://github.com/facebook/facebook-python-business-sdk/blob/main/facebook_business/adobjects/adset.py)
+
+### Assess the five-step claim
+
+| Claim | What the evidence supports | What remains unknown |
+| --- | --- | --- |
+| Find `fbq('init'` to get the pixel ID | An initialization call identifies a configured pixel. | Other pixels, consent-dependent loading, wrappers, and server-side connections. |
+| Search `fbq('track'` to see what Meta receives | Calls identify configured standard events. Runtime requests provide stronger evidence that the browser sends them. | Whether Meta accepts, attributes, or uses each event for delivery. |
+| A `Lead` on page load means Meta learns from visitors | A `Lead` on an empty form page measures arrival rather than submission. | Whether a campaign optimizes for that signal. A confirmation-page load may represent a valid completed lead. |
+| `trackCustom` reveals deeper funnel steps | Business-specific names can reveal intended measurement priorities. | Whether the events fire, mean what their names imply, or follow the first form. |
+| Match landing pages and events to active ads to identify optimization | The match can show a public offer, its destination, and the site's measurement for that journey. | The selected objective, performance goal, custom conversion, bid strategy, and profitability. |
+
+Searching literal text alone misses alternate quotes, whitespace, GTM templates, application wrappers, and dynamically generated calls. A `Purchase` string inside a generic library is not evidence of a configured purchase event.
+
+`track` and `trackCustom` distinguish standard and custom events. Also inspect `trackSingle` and `trackSingleCustom` when present, because calls can target a particular pixel. When several pixels initialize, resolve the destination of each call rather than assigning every event to the first ID found.
+
+A custom event such as `quiz_complete` is an event name. A custom conversion is an account-side rule that can use events, URLs, or parameters. Neither the event's name nor its existence proves that the advertiser created or selected such a rule.
+
+Meta's [conversion-tracking reference](https://developers.facebook.com/docs/meta-pixel/implementation/conversion-tracking/) is the reference for these call types and conversion concepts. That page returned HTTP 429 during this update, so this guide does not claim a fresh verification of its full contents.
+
+### Read each event as an observation
+
+The following examples are hypothetical. The trigger determines whether the event actually represents the intended milestone.
+
+| Event | Intended business meaning | Evidence to inspect |
+| --- | --- | --- |
+| `PageView` | A page visit | Initial load versus route change, consent timing, duplicate emissions. |
+| `ViewContent` | Viewing relevant content, often a product | URL, content ID, content type, category, and whether the product actually loaded. |
+| `Lead` | A person expressing interest | Empty form arrival, CTA click, form submission, or confirmed successful submission. |
+| `AddToCart` | An item added to a cart | Button intent versus a successful cart update, item IDs, quantity, and value. |
+| `InitiateCheckout` | Checkout started | Checkout navigation versus an actual checkout state. |
+| `Purchase` | A completed purchase | Confirmation logic, order value, currency, event identity, and repeated page loads. |
+| `CompleteRegistration` | Registration completed | Successful account creation versus opening a signup page. |
+| `Schedule` | An appointment booked | Scheduler opening versus confirmation of a reserved slot. |
+| `StartTrial` or `Subscribe` | A trial or subscription begins | Activation or successful billing versus clicking a pricing CTA. |
+| `quiz_complete` | A custom quiz milestone | Final-answer submission, result display, or a generic button click. |
+| `booked_call` | A custom booking milestone | A real booking confirmation versus a link to a calendar. |
+
+For each row in an actual audit, report the pixel ID, exact trigger, parameters, source URL, and evidence level. Do not turn this reference list into a claim that all these events exist on the target.
+
+Payloads can add useful business context. `content_ids` and `contents` may identify products or variants. `content_name` and `content_category` may identify a service or audience segment. A custom plan parameter may distinguish subscription tiers. Corroborate those strings against public offers before calling them active products or new launches.
+
+`value: 1, currency: 'GBP'` on a Meta `Lead` has the same central limitation as the Microsoft example below. It is a supplied event value. It does not establish a £1 acquisition cost or £1 of cash received. A dynamic `Purchase` value may represent order revenue, but its actual source and tax, shipping, discount, and refund treatment still matter.
+
+### Understand why a premature Lead can make CPL look better
+
+Suppose a hypothetical campaign spends £1,000. There are 200 landing-page arrivals but only 20 successful lead submissions. If all 200 arrivals become attributed `Lead` conversions, the reported cost per Lead is £5. The cost per real submitted lead is £50.
+
+This calculation assumes those arrivals are all counted and attributed in the reported denominator. Real attribution, repeat visits, and deduplication can change that denominator. The example explains the measurement error, not a forecast of Meta's reporting.
+
+The misleading event makes apparent CPL lower. If delivery optimizes for that event, it may also favor people likely to visit rather than submit. The browser alone cannot establish that campaign choice or quantify its effect.
+
+A `Lead` on a thank-you page can be appropriate when that page follows a successful submission. Its reliability depends on whether people can visit the page directly and whether reloads create extra events. A submit-button click is also weak evidence if validation or the server can reject the form afterward.
+
+### Account for the browser's blind spots
+
+An ordinary browser audit cannot see a competitor's complete Conversions API or CRM event stream. Meta's official server-event SDK includes event names, event IDs, action sources, and custom data independently of browser calls. A site can therefore send a later qualified-lead or purchase outcome that is absent from the inspected JavaScript. [Meta's server-event SDK definition](https://github.com/facebook/facebook-python-business-sdk/blob/main/facebook_business/adobjects/serverside/event.py)
+
+A visible browser `eventID` suggests preparation for identifying an event occurrence. It does not prove that a server sends the corresponding event, that identifiers match, or that Meta deduplicates the pair. Conversely, a missing ID in one inspected snippet does not establish double counting across the whole integration. Meta's [deduplication reference](https://developers.facebook.com/docs/marketing-api/conversions-api/deduplicate-pixel-and-server-events/) describes the platform rules. That page also returned HTTP 429 during this update.
+
+Consent settings, browser blocking, geography, login state, and route-specific loading affect what an auditor sees. Report the tested conditions. An absent browser event is an observation under those conditions, not proof of an absent measurement strategy.
+
+The extension historically called Meta Pixel Helper is currently listed as **Meta Ads Data Advisor**. Its listing describes diagnostic and setup capabilities. Record the actual tool and version used, verify the publisher, and use inspection features without changing the site's configuration. Browser network tools are another way to observe outgoing pixel requests. [Official extension listing](https://chromewebstore.google.com/detail/meta-ads-data-advisor/fdgfkebogiimcoedlicjlajpkdmockpc)
+
+### Connect public ads to the website without inventing account settings
+
+Meta's Ad Library provides public ad transparency. Its original announcement describes access to active ads and additional transparency information. Availability and fields vary by ad category, region, and date, so record the actual filters and details displayed during the audit. [Meta's Ad Library announcement](https://about.fb.com/news/2019/03/a-better-way-to-learn-about-ads/amp/)
+
+An ad-to-landing-page table should preserve the following evidence.
+
+| Field | Why it matters |
+| --- | --- |
+| Advertiser identity and Library link | Reduces confusion between similarly named companies, agencies, and regional pages. |
+| Ad ID, date observed, country, and status filters | Makes the observation reproducible and bounds coverage. |
+| Displayed start date, creative, copy, CTA, and offer | Shows the public positioning at the time observed. |
+| Visible link and resolved destination | Connects the ad to the actual page, including redirects. |
+| Landing-page promise and corresponding events | Connects the commercial offer with observed measurement. |
+| Conflicting evidence and unknown settings | Prevents a plausible funnel interpretation from becoming a false account-level claim. |
+
+An ad for a consultation, a booking landing page, and a `booked_call` event support an inference of a consultation-acquisition journey. They do not establish that the ad set optimizes for `booked_call`. The campaign could use another goal or a later server-side outcome.
+
+An active product ad can advertise a new bundle or introductory offer before the main navigation changes. Preserve the creative, destination, offer text, and observation date. A new discovery still needs dated comparison before it becomes evidence of a new launch.
+
+Ad count and longevity do not establish spend or profitability. A long-running ad may have little delivery. A site-wide `Purchase` tag does not mean every ad to that site optimizes for purchases. Instant forms, messaging, and app journeys may also occur outside the inspected website.
+
+For an audit of your own account, authorized access to Ads Manager, Events Manager, and CRM or order records can resolve these unknowns. Check the selected goal, confirm successful business outcomes, and compare reported conversions with actual records. Public competitor inspection cannot perform that reconciliation.
+
 ## What a Microsoft Ads value of GBP 1 means
 
 Suppose the report finds this Microsoft Advertising UET configuration:
